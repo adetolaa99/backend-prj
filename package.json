@@ -1,0 +1,27 @@
+{
+  "name": "backend-prj",
+  "version": "1.0.0",
+  "description": "The backend server to the University's blockchain-based financial system",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Hassan Nofisat Adetola",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.9.9",
+    "nodemailer": "^6.9.13",
+    "sequelize": "^6.37.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.2",
+    "sequelize-cli": "^6.6.2"
+  }
+}

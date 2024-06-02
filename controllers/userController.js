@@ -1,0 +1,191 @@
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const db = require("../models");
+const UserModel = db.users;
+const tokenConfig = require("../config/tokenConfig.js");
+const sendEmail = require("../utils/sendEmail.js");
+const userService = require("../services/userService.js");
+
+exports.signUp = async (req, res) => {
+  const { username, email, password } = req.body;
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await UserModel.create({
+      username,
+      email,
+      password: hashedPassword,
+    });
+    res
+      .status(201)
+      .json({ message: "You signed up successfully! :)", userId: user.id });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.login = async (req, res) => {
+  const { identifier, password } = req.body;
+  try {
+    const user = await UserModel.findOne({
+      where: {
+        [db.Sequelize.Op.or]: [{ email: identifier }, { username: identifier }],
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid user details :(" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid password :(" });
+    }
+
+    const token = jwt.sign({ userId: user.id }, tokenConfig.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+    res.status(200).json({ message: "Login successful", token });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  const { firstName, lastName, walletAddress } = req.body;
+  const userId = req.user.userId;
+  try {
+    const user = await UserModel.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.firstName = firstName || user.firstName;
+    user.lastName = lastName || user.lastName;
+    user.walletAddress = walletAddress || user.walletAddress;
+
+    await user.save();
+    res.status(200).json({ message: "Profile updated successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.fetchProfile = async (req, res) => {
+  const userId = req.user.userId;
+  try {
+    const user = await UserModel.findByPk(userId, {
+      attributes: { exclude: ["password"] },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User details not found" });
+    }
+
+    res.status(200).json({
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      walletAddress: user.walletAddress,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+//under construction
+exports.viewResetPasswordPage = async (req, res) => {
+  const token = req.query.token;
+  if (!token) {
+    return res.status(400).send("Token is required");
+  }
+  try {
+    const user = await userService.verifyToken(token);
+
+    //temporary frontend bit
+    res.send(`
+      <html>
+      <head>
+        <title>Reset Password</title>
+      </head>
+      <body>
+        <h1>Reset Password</h1>
+        <form action="/api/users/reset-password" method="POST">
+          <input type="hidden" name="token" value="${token}" />
+          <label for="newPassword">New Password:</label>
+          <input type="password" id="newPassword" name="newPassword" required>
+          <input type="submit" value="Reset Password">
+        </form>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error(error);
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).send("Token expired");
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(403).send("Invalid token");
+    } else {
+      return res.status(500).send("An error occurred");
+    }
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res
+      .status(400)
+      .json({ error: "Token and new password are required" });
+  }
+  try {
+    const user = await userService.verifyToken(token);
+    await userService.resetPassword(user, newPassword);
+
+    res.json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error(error);
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ error: "Token expired" });
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(403).json({ error: "Invalid token" });
+    } else {
+      return res.status(500).json({ error: "An error occurred" });
+    }
+  }
+};
+
+exports.sendResetPasswordMail = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const { user, token } = await userService.generateResetToken(email);
+
+    const resetURL = `http://localhost:8080/api/users/reset-password?token=${token}`;
+    const message = `You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.\n\nIf the button above isn’t working, paste the link below into your browser:\n\n${resetURL}\n\nIf you did not request to change your password, you can safely ignore this email. Thank you.`;
+    const htmlMessage = `
+      <div style="font-family: Arial, sans-serif; margin: 20px;">
+        <p>You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.</p>
+        <button style="text-decoration: none; border-radius: 5px;"><a href="${resetURL}">Click here to change your password</a></button>
+        <p>If the button above isn’t working, paste the link below into your browser:</p>
+        <p>${resetURL}</p>
+        <p>If you did not request to change your password, you can safely ignore this email.</p>
+        <p>Thank you.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      email,
+      subject: "Reset Your Password",
+      message,
+      html: htmlMessage,
+    });
+
+    res.json({ message: "Password reset email sent" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to send password reset email" });
+  }
+};
