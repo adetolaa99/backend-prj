@@ -9,7 +9,7 @@ AdminRouter.get("/users", authenticateToken, adminController.viewAllUsers);
 AdminRouter.put(
   "/users/:userId",
   authenticateToken,
-  adminController.updateUser
+  adminController.updateUserDetails
 );
 AdminRouter.delete(
   "/users/:userId",
@@ -19,12 +19,17 @@ AdminRouter.delete(
 AdminRouter.get(
   "/users/:userId/wallet",
   authenticateToken,
-  adminController.viewUserWalletAddress
+  adminController.viewUserWalletDetails
 );
 AdminRouter.get(
   "/transactions",
   authenticateToken,
   adminController.viewAllTransactions
+);
+AdminRouter.get(
+  "/users/:userId/transactions",
+  authenticateToken,
+  adminController.viewUserTransactions
 );
 AdminRouter.post(
   "/provision",

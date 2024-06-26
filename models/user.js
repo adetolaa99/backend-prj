@@ -3,9 +3,9 @@ const UserModel = (sequelize, DataTypes) => {
     "User",
     {
       id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
+        type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
       },
       username: {
         type: DataTypes.STRING,
@@ -21,15 +21,19 @@ const UserModel = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      stellarPublicKey: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      stellarSecretKey: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       firstName: {
         type: DataTypes.STRING,
         allowNull: true,
       },
       lastName: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      walletAddress: {
         type: DataTypes.STRING,
         allowNull: true,
       },

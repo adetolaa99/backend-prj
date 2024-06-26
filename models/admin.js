@@ -3,9 +3,9 @@ const AdminModel = (sequelize, DataTypes) => {
     "Admin",
     {
       id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
+       type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
       },
       email: {
         type: DataTypes.STRING,

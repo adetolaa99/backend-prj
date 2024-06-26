@@ -1,20 +1,89 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../models");
+const { Op } = require("sequelize");
 const UserModel = db.users;
 const tokenConfig = require("../config/tokenConfig.js");
 const sendEmail = require("../utils/sendEmail.js");
 const userService = require("../services/userService.js");
+const { server, StellarSdk } = require("../stellar/stellarConnect.js");
+const stellarConfig = require("../config/stellarConfig.js");
+const fetch = import("node-fetch");
 
 exports.signUp = async (req, res) => {
   const { username, email, password } = req.body;
   try {
+    const existingUser = await UserModel.findOne({
+      where: {
+        [Op.or]: [{ email }, { username }],
+      },
+    });
+    if (existingUser) {
+      return res.status(400).json({ error: "User has already signed up!" });
+    }
+
+    // Generate Stellar key pair for new account
+    const pair = StellarSdk.Keypair.random();
+    const publicKey = pair.publicKey();
+    const secretKey = pair.secret();
+
+    // Funding the new account with XLM to activate it
+    const distributorKeys = StellarSdk.Keypair.fromSecret(
+      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
+    );
+    const distributorAccount = await server.loadAccount(
+      distributorKeys.publicKey()
+    );
+    const fee = await server.fetchBaseFee();
+
+    const transaction = new StellarSdk.TransactionBuilder(distributorAccount, {
+      fee,
+      networkPassphrase: StellarSdk.Networks.TESTNET,
+    })
+      .addOperation(
+        StellarSdk.Operation.createAccount({
+          destination: publicKey,
+          startingBalance: "20",
+        })
+      )
+      .setTimeout(100)
+      .build();
+
+    transaction.sign(distributorKeys);
+    await server.submitTransaction(transaction);
+
+    // Setting up a trustline for the custom asset
+    const issuingPublicKey = StellarSdk.Keypair.fromSecret(
+      stellarConfig.ISSUING_ACCOUNT_SECRET
+    ).publicKey();
+    const assetCode = "FUC";
+    const fucAsset = new StellarSdk.Asset(assetCode, issuingPublicKey);
+    const newAccount = await server.loadAccount(publicKey);
+    const trustlineTransaction = new StellarSdk.TransactionBuilder(newAccount, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: StellarSdk.Networks.TESTNET,
+    })
+      .addOperation(
+        StellarSdk.Operation.changeTrust({
+          asset: fucAsset,
+        })
+      )
+      .setTimeout(180)
+      .build();
+
+    trustlineTransaction.sign(pair);
+    await server.submitTransaction(trustlineTransaction);
+
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = await UserModel.create({
       username,
       email,
       password: hashedPassword,
+      stellarPublicKey: publicKey,
+      stellarSecretKey: secretKey,
     });
+
     res
       .status(201)
       .json({ message: "You signed up successfully! :)", userId: user.id });
@@ -51,7 +120,7 @@ exports.login = async (req, res) => {
 };
 
 exports.updateProfile = async (req, res) => {
-  const { firstName, lastName, walletAddress } = req.body;
+  const { firstName, lastName } = req.body;
   const userId = req.user.userId;
   try {
     const user = await UserModel.findByPk(userId);
@@ -61,7 +130,6 @@ exports.updateProfile = async (req, res) => {
 
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
-    user.walletAddress = walletAddress || user.walletAddress;
 
     await user.save();
     res.status(200).json({ message: "Profile updated successfully" });
@@ -85,10 +153,10 @@ exports.fetchProfile = async (req, res) => {
       id: user.id,
       username: user.username,
       email: user.email,
+      stellarPublicKey: user.stellarPublicKey,
+      stellarSecretKey: user.stellarSecretKey,
       firstName: user.firstName,
       lastName: user.lastName,
-      fullName: user.fullName,
-      walletAddress: user.walletAddress,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

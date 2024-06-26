@@ -3,7 +3,8 @@ const jwt = require("jsonwebtoken");
 const db = require("../models");
 const AdminModel = db.admins;
 const UserModel = db.users;
-const tokenConfig= require("../config/tokenConfig.js")
+const TransactionModel = db.transactions;
+const tokenConfig = require("../config/tokenConfig.js");
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -34,9 +35,16 @@ exports.viewAllUsers = async (req, res) => {
   }
 };
 
-exports.updateUser = async (req, res) => {
+exports.updateUserDetails = async (req, res) => {
   const { userId } = req.params;
-  const { username, email, firstName, lastName, walletAddress } = req.body;
+  const {
+    username,
+    email,
+    stellarPublicKey,
+    stellarSecretKey,
+    firstName,
+    lastName,
+  } = req.body;
   try {
     const user = await UserModel.findByPk(userId);
     if (!user) {
@@ -45,9 +53,10 @@ exports.updateUser = async (req, res) => {
 
     if (username) user.username = username;
     if (email) user.email = email;
+    if (stellarPublicKey) user.stellarPublicKey = stellarPublicKey;
+    if (stellarSecretKey) user.stellarSecretKey = stellarSecretKey;
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
-    if (walletAddress) user.walletAddress = walletAddress;
 
     await user.save();
     res.json({ message: "User updated successfully" });
@@ -71,11 +80,17 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-exports.viewUserWalletAddress = async (req, res) => {
+exports.viewUserWalletDetails = async (req, res) => {
   const { userId } = req.params;
   try {
     const user = await UserModel.findByPk(userId);
-    res.json({ walletAddress: user.walletAddress });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json({
+      stellarPublicKey: user.stellarPublicKey,
+      stellarSecretKey: user.stellarSecretKey,
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -90,6 +105,19 @@ exports.viewAllTransactions = async (req, res) => {
       },
     });
     res.json(transactions);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+exports.viewUserTransactions = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const transactions = await TransactionModel.findAll({
+      where: { userId: userId },
+      order: [["createdAt", "DESC"]],
+    });
+    res.status(200).json(transactions);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

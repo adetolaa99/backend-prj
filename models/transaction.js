@@ -2,10 +2,14 @@ const TransactionModel = (sequelize, DataTypes) => {
   const Transaction = sequelize.define(
     "Transaction",
     {
-      id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
+      transactionId: {
+        type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true,
+      },
+      stellarTransactionId: {
+        type: DataTypes.STRING,
+        allowNull: false,
       },
       from: {
         type: DataTypes.STRING,
@@ -15,12 +19,16 @@ const TransactionModel = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      tokenAmount: {
+      assetAmount: {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
+      assetCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       userId: {
-        type: DataTypes.UUID,
+        type: DataTypes.INTEGER,
         allowNull: false,
       },
     },
