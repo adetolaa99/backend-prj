@@ -17,11 +17,6 @@ AdminRouter.delete(
   adminController.deleteUser
 );
 AdminRouter.get(
-  "/users/:userId/wallet",
-  authenticateToken,
-  adminController.viewUserWalletDetails
-);
-AdminRouter.get(
   "/transactions",
   authenticateToken,
   adminController.viewAllTransactions
@@ -35,6 +30,12 @@ AdminRouter.post(
   "/provision",
   authenticateToken,
   adminController.createAdminAccount
+);
+
+AdminRouter.get(
+  "/users/:userId/wallet",
+  authenticateToken,
+  adminController.viewUserWalletDetails
 );
 
 module.exports = AdminRouter;

@@ -17,10 +17,11 @@ const authenticateToken = (req, res, next) => {
     }
     console.log("Decoded token:", decoded);
     req.user = {
-      id: decoded.userId,
+      userId: decoded.userId,
       username: decoded.username,
       email: decoded.email,
     };
+     console.log("User attached to request:", req.user);
     next();
   });
 };

@@ -6,21 +6,40 @@ const authenticateToken = require("../middleware/auth.js");
 const StellarRouter = express.Router();
 
 //user
-StellarRouter.get("/check-balance/:publicKey", stellarController.checkBalance);
+StellarRouter.post(
+  "/receive-asset",
+  authenticateToken,
+  stellarController.receiveAsset
+);
+StellarRouter.get(
+  "/check-balance/:publicKey",
+  authenticateToken,
+  stellarController.checkBalance
+);
 StellarRouter.post(
   "/transfer",
   authenticateToken,
   stellarController.transferAsset
 );
 StellarRouter.get("/transactions/:userId", authenticateToken, stellarController.fetchTransactions);
-StellarRouter.get("/wallet/:publicKey", stellarController.fetchWalletDetails);
+
+StellarRouter.get(
+  "/wallet/:publicKey",
+  authenticateToken,
+  stellarController.fetchWalletDetails
+);
 StellarRouter.get(
   "/transactions/:publicKey",
+  authenticateToken,
   stellarController.fetchWalletTransactions
 );
 
 //admin
-StellarRouter.post("/create-asset", stellarController.createAsset);
-StellarRouter.post("/send-asset", stellarController.sendAsset);
+StellarRouter.post(
+  "/create-asset",
+  authenticateToken,
+  stellarController.createAsset
+);
+
 
 module.exports = StellarRouter;

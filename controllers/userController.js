@@ -11,7 +11,7 @@ const stellarConfig = require("../config/stellarConfig.js");
 const fetch = import("node-fetch");
 
 exports.signUp = async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, firstName, lastName } = req.body;
   try {
     const existingUser = await UserModel.findOne({
       where: {
@@ -19,7 +19,7 @@ exports.signUp = async (req, res) => {
       },
     });
     if (existingUser) {
-      return res.status(400).json({ error: "User has already signed up!" });
+      return res.status(400).json({ error: "You've already signed up!" });
     }
 
     // Generate Stellar key pair for new account
@@ -79,6 +79,8 @@ exports.signUp = async (req, res) => {
     const user = await UserModel.create({
       username,
       email,
+      firstName,
+      lastName,
       password: hashedPassword,
       stellarPublicKey: publicKey,
       stellarSecretKey: secretKey,
@@ -102,61 +104,57 @@ exports.login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(401).json({ message: "Invalid user details :(" });
+      return res.status(400).json({
+        message: "User not found! Please check your details and try again",
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: "Invalid password :(" });
+      return res
+        .status(400)
+        .json({
+          message: "The password provided is invalid! Please try again",
+        });
     }
 
     const token = jwt.sign({ userId: user.id }, tokenConfig.JWT_SECRET, {
       expiresIn: "1h",
     });
-    res.status(200).json({ message: "Login successful", token });
+
+    const profile = {
+      username: user.username,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      stellarPublicKey: user.stellarPublicKey,
+    };
+
+    res.status(200).json({ message: "Login successful", token, profile });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 };
 
-exports.updateProfile = async (req, res) => {
-  const { firstName, lastName } = req.body;
-  const userId = req.user.userId;
-  try {
-    const user = await UserModel.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    user.firstName = firstName || user.firstName;
-    user.lastName = lastName || user.lastName;
-
-    await user.save();
-    res.status(200).json({ message: "Profile updated successfully" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 exports.fetchProfile = async (req, res) => {
   const userId = req.user.userId;
+  console.log(`Fetching profile for userId: ${userId}`);
   try {
     const user = await UserModel.findByPk(userId, {
       attributes: { exclude: ["password"] },
     });
-
+    console.log(`User found: ${user}`);
     if (!user) {
       return res.status(404).json({ message: "User details not found" });
     }
 
     res.status(200).json({
-      id: user.id,
       username: user.username,
       email: user.email,
-      stellarPublicKey: user.stellarPublicKey,
-      stellarSecretKey: user.stellarSecretKey,
       firstName: user.firstName,
       lastName: user.lastName,
+      stellarPublicKey: user.stellarPublicKey,
+      stellarSecretKey: user.stellarSecretKey,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -201,6 +199,39 @@ exports.viewResetPasswordPage = async (req, res) => {
   }
 };
 
+//
+exports.sendResetPasswordMail = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const { user, token } = await userService.generateResetToken(email);
+
+    const resetURL = `http://172.20.10.5:8080/api/users/reset-password?token=${token}`;
+    const message = `You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.\n\nIf the button above isn’t working, paste the link below into your browser:\n\n${resetURL}\n\nIf you did not request to change your password, you can safely ignore this email. Thank you.`;
+    const htmlMessage = `
+      <div style="font-family: Arial, sans-serif; margin: 20px;">
+        <p>You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.</p>
+        <button style="text-decoration: none; border-radius: 5px;"><a href="${resetURL}">Click here to change your password</a></button>
+        <p>If the button above isn’t working, paste the link below into your browser:</p>
+        <p>${resetURL}</p>
+        <p>If you did not request to change your password, you can safely ignore this email.</p>
+        <p>Thank you.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      email,
+      subject: "Reset Your Password",
+      message,
+      html: htmlMessage,
+    });
+
+    res.json({ message: "Check your e-mail, a password reset link has been sent" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to send password reset email" });
+  }
+};
+
 exports.resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
 
@@ -226,34 +257,4 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-exports.sendResetPasswordMail = async (req, res) => {
-  const { email } = req.body;
-  try {
-    const { user, token } = await userService.generateResetToken(email);
 
-    const resetURL = `http://localhost:8080/api/users/reset-password?token=${token}`;
-    const message = `You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.\n\nIf the button above isn’t working, paste the link below into your browser:\n\n${resetURL}\n\nIf you did not request to change your password, you can safely ignore this email. Thank you.`;
-    const htmlMessage = `
-      <div style="font-family: Arial, sans-serif; margin: 20px;">
-        <p>You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.</p>
-        <button style="text-decoration: none; border-radius: 5px;"><a href="${resetURL}">Click here to change your password</a></button>
-        <p>If the button above isn’t working, paste the link below into your browser:</p>
-        <p>${resetURL}</p>
-        <p>If you did not request to change your password, you can safely ignore this email.</p>
-        <p>Thank you.</p>
-      </div>
-    `;
-
-    await sendEmail({
-      email,
-      subject: "Reset Your Password",
-      message,
-      html: htmlMessage,
-    });
-
-    res.json({ message: "Password reset email sent" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to send password reset email" });
-  }
-};

@@ -18,7 +18,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Password is invalid!" });
 
     const token = jwt.sign({ adminId: admin.id }, tokenConfig.JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "2h",
     });
     res.json({ message: "Login successful", token });
   } catch (error) {
@@ -80,22 +80,6 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-exports.viewUserWalletDetails = async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const user = await UserModel.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    res.json({
-      stellarPublicKey: user.stellarPublicKey,
-      stellarSecretKey: user.stellarSecretKey,
-    });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
 exports.viewAllTransactions = async (req, res) => {
   try {
     const transactions = await db.transactions.findAll({
@@ -131,6 +115,23 @@ exports.createAdminAccount = async (req, res) => {
     res.status(201).json({
       message: "Admin account created successfully",
       adminId: admin.id,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+//? needed
+exports.viewUserWalletDetails = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const user = await UserModel.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json({
+      stellarPublicKey: user.stellarPublicKey,
+      stellarSecretKey: user.stellarSecretKey,
     });
   } catch (error) {
     res.status(400).json({ error: error.message });

@@ -19,14 +19,71 @@ exports.checkBalance = async (req, res) => {
   }
 };
 
+exports.receiveAsset = async (req, res) => {
+  const { publicKey } = req.body;
+  try {
+    const distributorKeys = StellarSdk.Keypair.fromSecret(
+      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
+    );
+    const issuingPublicKey = StellarSdk.Keypair.fromSecret(
+      stellarConfig.ISSUING_ACCOUNT_SECRET
+    ).publicKey();
+
+    const assetCode = "FUC";
+    const fucAsset = new StellarSdk.Asset(assetCode, issuingPublicKey);
+
+    await server.loadAccount(publicKey);
+    const distributorAccount = await server.loadAccount(
+      distributorKeys.publicKey()
+    );
+    const transaction = new StellarSdk.TransactionBuilder(distributorAccount, {
+      fee: StellarSdk.BASE_FEE,
+      networkPassphrase: StellarSdk.Networks.TESTNET,
+    })
+      .addOperation(
+        StellarSdk.Operation.payment({
+          destination: publicKey,
+          asset: fucAsset,
+          amount: "50000", // Amount of FUC to send
+        })
+      )
+      .addMemo(StellarSdk.Memo.text("FUC token"))
+      .setTimeout(180)
+      .build();
+
+    transaction.sign(distributorKeys);
+    const result = await server.submitTransaction(transaction);
+
+    res.send({ message: "Success!", result: result });
+  } catch (error) {
+    if (error instanceof StellarSdk.NotFoundError) {
+      res.status(400).send("The receiver account does not exist!");
+    } else if (
+      error.response &&
+      error.response.data &&
+      error.response.data.extras
+    ) {
+      res
+        .status(400)
+        .send(
+          `Transaction failed with error: ${JSON.stringify(
+            error.response.data.extras.result_codes
+          )}`
+        );
+    } else {
+      res.status(400).send("Something went wrong: " + error.message);
+    }
+  }
+};
+
 exports.transferAsset = async (req, res) => {
   const { receiverPublicKey, amount } = req.body;
   try {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     console.log("User ID from token:", userId);
     const user = await UserModel.findOne({ where: { id: userId } });
     if (!user) {
-      return res.status(404).send({ error: 'User not found' });
+      return res.status(404).send({ error: "User not found" });
     }
 
     const issuingPublicKey = StellarSdk.Keypair.fromSecret(
@@ -51,7 +108,7 @@ exports.transferAsset = async (req, res) => {
       .build();
 
     transaction.sign(senderKeys);
-    const result= await server.submitTransaction(transaction);
+    const result = await server.submitTransaction(transaction);
 
     await TransactionModel.create({
       stellarTransactionId: result.id,
@@ -60,16 +117,32 @@ exports.transferAsset = async (req, res) => {
       assetAmount: parseFloat(amount),
       assetCode: "FUC",
       userId: userId,
-    }); 
-    
+    });
+
     res.send({ message: "Transaction successful!", result });
   } catch (error) {
-    res.status(500).send(error.message);
+    if (error instanceof StellarSdk.NotFoundError) {
+      res.status(400).send("The receiver account does not exist!");
+    } else if (
+      error.response &&
+      error.response.data &&
+      error.response.data.extras
+    ) {
+      res
+        .status(400)
+        .send(
+          `Transaction failed with error: ${JSON.stringify(
+            error.response.data.extras.result_codes
+          )}`
+        );
+    } else {
+      res.status(500).send("Something went wrong: " + error.message);
+    }
   }
 };
 
 exports.fetchTransactions = async (req, res) => {
-  const userId = req.user.id;
+  const userId = req.user.userId;
 
   try {
     const transactions = await TransactionModel.findAll({
@@ -83,6 +156,7 @@ exports.fetchTransactions = async (req, res) => {
   }
 };
 
+// needed?
 exports.fetchWalletDetails = async (req, res) => {
   const { publicKey } = req.params;
   try {
@@ -93,7 +167,6 @@ exports.fetchWalletDetails = async (req, res) => {
   }
 };
 
-// needed?
 exports.fetchWalletTransactions = async (req, res) => {
   const { publicKey } = req.params;
   try {
@@ -130,8 +203,8 @@ exports.createAsset = async (req, res) => {
       .addOperation(
         StellarSdk.Operation.changeTrust({
           asset: fuc,
-          limit: "1000",
-          source: distributorKeypair.publicKey(),
+          limit: amount.toString(),
+          source: distributionKeys.publicKey(),
         })
       )
       .setTimeout(100)
@@ -153,8 +226,8 @@ exports.createAsset = async (req, res) => {
         StellarSdk.Operation.payment({
           destination: distributionKeys.publicKey(),
           asset: fuc,
-          amount: 1000,
-          source: issuerKeypair.publicKey(),
+          amount: amount.toString(),
+          source: issuingKeys.publicKey(),
         })
       )
       .setTimeout(100)
@@ -168,62 +241,3 @@ exports.createAsset = async (req, res) => {
     res.status(400).send(error.message);
   }
 };
-
-exports.sendAsset = async (req, res) => {
-  const { publicKey } = req.body;
-  try {
-    const distributorKeys = StellarSdk.Keypair.fromSecret(
-      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
-    );
-    const issuingPublicKey = StellarSdk.Keypair.fromSecret(
-      stellarConfig.ISSUING_ACCOUNT_SECRET
-    ).publicKey();
-
-    const assetCode = "FUC";
-    const fucAsset = new StellarSdk.Asset(assetCode, issuingPublicKey);
-
-    await server.loadAccount(publicKey);
-    const distributorAccount = await server.loadAccount(
-      distributorKeys.publicKey()
-    );
-    const transaction = new StellarSdk.TransactionBuilder(distributorAccount, {
-      fee: StellarSdk.BASE_FEE,
-      networkPassphrase: StellarSdk.Networks.TESTNET,
-    })
-      .addOperation(
-        StellarSdk.Operation.payment({
-          destination: publicKey,
-          asset: fucAsset,
-          amount: "10", // Amount of FUC to send
-        })
-      )
-      .addMemo(StellarSdk.Memo.text("FUC token"))
-      .setTimeout(180)
-      .build();
-
-    transaction.sign(distributorKeys);
-    const result = await server.submitTransaction(transaction);
-
-    res.send({ message: "Success!", result: result });
-  } catch (error) {
-    if (error instanceof StellarSdk.NotFoundError) {
-      res.status(400).send("The receiver account does not exist!");
-    } else if (
-      error.response &&
-      error.response.data &&
-      error.response.data.extras
-    ) {
-      res
-        .status(400)
-        .send(
-          `Transaction failed with error: ${JSON.stringify(
-            error.response.data.extras.result_codes
-          )}`
-        );
-    } else {
-      res.status(400).send("Something went wrong: " + error.message);
-    }
-  }
-};
-
-
