@@ -23,6 +23,7 @@ StellarRouter.post(
 );
 StellarRouter.get("/transactions/:userId", authenticateToken, stellarController.fetchTransactions);
 
+//needed?
 StellarRouter.get(
   "/wallet/:publicKey",
   authenticateToken,
@@ -39,6 +40,11 @@ StellarRouter.post(
   "/create-asset",
   authenticateToken,
   stellarController.createAsset
+);
+StellarRouter.get(
+  "/check-admin-balance/:publicKey",
+  authenticateToken,
+  stellarController.checkAdminBalance
 );
 
 

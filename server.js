@@ -4,7 +4,8 @@ const cors = require("cors");
 
 const UserRouter = require("./routes/userRoutes.js");
 const AdminRouter = require("./routes/adminRoutes.js");
-const StellarRouter = require("./routes/stellarRoutes.js")
+const StellarRouter = require("./routes/stellarRoutes.js");
+const PaystackRouter = require("./routes/paystackRoute.js");
 require("dotenv").config();
 
 const app = express();
@@ -15,7 +16,8 @@ app.use(cors());
 
 app.use("/api/users", UserRouter);
 app.use("/api/admin", AdminRouter);
-app.use("/api/stellar", StellarRouter)
+app.use("/api/stellar", StellarRouter);
+app.use("/api/paystack", PaystackRouter);
 
 app.get("/api", (req, res) => {
   res.send("Heyyy from my FY project's backend server -_-");

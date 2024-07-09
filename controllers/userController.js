@@ -161,45 +161,7 @@ exports.fetchProfile = async (req, res) => {
   }
 };
 
-//under construction
-exports.viewResetPasswordPage = async (req, res) => {
-  const token = req.query.token;
-  if (!token) {
-    return res.status(400).send("Token is required");
-  }
-  try {
-    const user = await userService.verifyToken(token);
-
-    //temporary frontend bit
-    res.send(`
-      <html>
-      <head>
-        <title>Reset Password</title>
-      </head>
-      <body>
-        <h1>Reset Password</h1>
-        <form action="/api/users/reset-password" method="POST">
-          <input type="hidden" name="token" value="${token}" />
-          <label for="newPassword">New Password:</label>
-          <input type="password" id="newPassword" name="newPassword" required>
-          <input type="submit" value="Reset Password">
-        </form>
-      </body>
-      </html>
-    `);
-  } catch (error) {
-    console.error(error);
-    if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).send("Token expired");
-    } else if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(403).send("Invalid token");
-    } else {
-      return res.status(500).send("An error occurred");
-    }
-  }
-};
-
-//
+//mobile?
 exports.sendResetPasswordMail = async (req, res) => {
   const { email } = req.body;
   try {
@@ -257,4 +219,40 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+//under construction
+exports.viewResetPasswordPage = async (req, res) => {
+  const token = req.query.token;
+  if (!token) {
+    return res.status(400).send("Token is required");
+  }
+  try {
+    const user = await userService.verifyToken(token);
 
+    //temporary frontend bit
+    res.send(`
+      <html>
+      <head>
+        <title>Reset Password</title>
+      </head>
+      <body>
+        <h1>Reset Password</h1>
+        <form action="/api/users/reset-password" method="POST">
+          <input type="hidden" name="token" value="${token}" />
+          <label for="newPassword">New Password:</label>
+          <input type="password" id="newPassword" name="newPassword" required>
+          <input type="submit" value="Reset Password">
+        </form>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error(error);
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).send("Token expired");
+    } else if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(403).send("Invalid token");
+    } else {
+      return res.status(500).send("An error occurred");
+    }
+  }
+};

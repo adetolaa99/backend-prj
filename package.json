@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@stellar/stellar-sdk": "^12.1.0",
+    "axios": "^1.7.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
@@ -20,6 +21,7 @@
     "mysql2": "^3.9.9",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.13",
+    "react-native-paystack": "^3.4.0",
     "sequelize": "^6.37.3",
     "stellar-sdk": "^12.1.0"
   },
