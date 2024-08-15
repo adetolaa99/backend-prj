@@ -56,7 +56,7 @@ exports.signUp = async (req, res) => {
     const issuingPublicKey = StellarSdk.Keypair.fromSecret(
       stellarConfig.ISSUING_ACCOUNT_SECRET
     ).publicKey();
-    const assetCode = "FUC";
+    const assetCode = "fuc";
     const fucAsset = new StellarSdk.Asset(assetCode, issuingPublicKey);
     const newAccount = await server.loadAccount(publicKey);
     const trustlineTransaction = new StellarSdk.TransactionBuilder(newAccount, {
@@ -111,11 +111,9 @@ exports.login = async (req, res) => {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res
-        .status(400)
-        .json({
-          message: "The password provided is invalid! Please try again",
-        });
+      return res.status(400).json({
+        message: "The password provided is invalid! Please try again",
+      });
     }
 
     const token = jwt.sign({ userId: user.id }, tokenConfig.JWT_SECRET, {
@@ -167,7 +165,7 @@ exports.sendResetPasswordMail = async (req, res) => {
   try {
     const { user, token } = await userService.generateResetToken(email);
 
-    const resetURL = `http://172.20.10.5:8080/api/users/reset-password?token=${token}`;
+    const resetURL = `http://172.20.10.2:8080/api/users/reset-password?token=${token}`;
     const message = `You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.\n\nIf the button above isn’t working, paste the link below into your browser:\n\n${resetURL}\n\nIf you did not request to change your password, you can safely ignore this email. Thank you.`;
     const htmlMessage = `
       <div style="font-family: Arial, sans-serif; margin: 20px;">
@@ -187,7 +185,9 @@ exports.sendResetPasswordMail = async (req, res) => {
       html: htmlMessage,
     });
 
-    res.json({ message: "Check your e-mail, a password reset link has been sent" });
+    res.json({
+      message: "Check your e-mail, a password reset link has been sent",
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to send password reset email" });

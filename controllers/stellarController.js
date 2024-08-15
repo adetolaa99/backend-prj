@@ -19,6 +19,7 @@ exports.checkBalance = async (req, res) => {
   }
 };
 
+//still needed?
 exports.receiveAsset = async (req, res) => {
   const { publicKey } = req.body;
   try {
@@ -90,7 +91,7 @@ exports.transferAsset = async (req, res) => {
       stellarConfig.ISSUING_ACCOUNT_SECRET
     ).publicKey();
     const senderKeys = StellarSdk.Keypair.fromSecret(user.stellarSecretKey);
-    const fucAsset = new StellarSdk.Asset("FUC", issuingPublicKey);
+    const fucAsset = new StellarSdk.Asset("fuc", issuingPublicKey);
 
     const account = await server.loadAccount(senderKeys.publicKey());
     const transaction = new StellarSdk.TransactionBuilder(account, {
@@ -115,7 +116,7 @@ exports.transferAsset = async (req, res) => {
       from: senderKeys.publicKey(),
       to: receiverPublicKey,
       assetAmount: parseFloat(amount),
-      assetCode: "FUC",
+      assetCode: "fuc",
       userId: userId,
     });
 

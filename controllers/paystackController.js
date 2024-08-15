@@ -80,6 +80,8 @@ exports.verifyPayment = async (req, res) => {
 
 exports.mintTokens = async (req, res) => {
   const { userId, amount } = req.body;
+  console.log(`Minting tokens for userId: ${userId} with amount: ${amount}`);
+
   try {
     const user = await UserModel.findByPk(userId);
     if (!user) {
@@ -95,15 +97,52 @@ exports.mintTokens = async (req, res) => {
     const distributionKeys = StellarSdk.Keypair.fromSecret(
       stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
     );
-    const fucAsset = new StellarSdk.Asset("FUC", issuingPublicKey);
+    const fucAsset = new StellarSdk.Asset("fuc", issuingPublicKey);
     const distributionAccount = await server.loadAccount(
       distributionKeys.publicKey()
     );
+    console.log(`Distribution account loaded: ${distributionKeys.publicKey()}`);
 
-    const transaction = new StellarSdk.TransactionBuilder(distributionAccount, {
-      fee: StellarSdk.BASE_FEE,
-      networkPassphrase: StellarSdk.Networks.TESTNET,
-    })
+    // Load user account to check trustline
+    const userAccount = await server.loadAccount(user.stellarPublicKey);
+    const hasTrustline = userAccount.balances.some(
+      (balance) =>
+        balance.asset_code === "fuc" &&
+        balance.asset_issuer === issuingPublicKey
+    );
+
+    if (!hasTrustline) {
+      console.log(`Creating trustline for user: ${user.stellarPublicKey}`);
+
+      const transaction = new StellarSdk.TransactionBuilder(userAccount, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase: StellarSdk.Networks.TESTNET,
+      })
+        .addOperation(
+          StellarSdk.Operation.changeTrust({
+            asset: fucAsset,
+          })
+        )
+        .setTimeout(100)
+        .build();
+
+      transaction.sign(StellarSdk.Keypair.fromSecret(user.stellarSecretKey));
+      await server.submitTransaction(transaction);
+      console.log(`Trustline created for user: ${user.stellarPublicKey}`);
+    }
+
+    // Load distribution account again to ensure it's up-to-date
+    const updatedDistributionAccount = await server.loadAccount(
+      distributionKeys.publicKey()
+    );
+
+    const paymentTransaction = new StellarSdk.TransactionBuilder(
+      updatedDistributionAccount,
+      {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase: StellarSdk.Networks.TESTNET,
+      }
+    )
       .addOperation(
         StellarSdk.Operation.payment({
           destination: user.stellarPublicKey,
@@ -113,12 +152,40 @@ exports.mintTokens = async (req, res) => {
       )
       .setTimeout(100)
       .build();
-    transaction.sign(distributionKeys);
-    await server.submitTransaction(transaction);
+
+    console.log("Payment transaction built");
+    paymentTransaction.sign(distributionKeys);
+    console.log("Payment transaction signed");
+
+    const result = await server.submitTransaction(paymentTransaction);
+    console.log("Payment transaction submitted", result);
 
     res.json({ success: true, message: "Tokens minted successfully" });
   } catch (error) {
     console.error("Mint tokens error:", error.response?.data || error);
+
+    if (error.response) {
+      console.error("Response error data:", error.response.data);
+      console.error("Response status:", error.response.status);
+      console.error("Response headers:", error.response.headers);
+
+      // Extract more detailed error information
+      const extras = error.response.data.extras;
+      if (extras) {
+        const resultCodes = extras.result_codes;
+        console.error("Transaction result codes:", resultCodes);
+        if (resultCodes.operations) {
+          resultCodes.operations.forEach((operation, index) => {
+            console.error(`Operation ${index + 1} result code:`, operation);
+          });
+        }
+      }
+    } else if (error.request) {
+      console.error("Request error:", error.request);
+    } else {
+      console.error("General error message:", error.message);
+    }
+
     res.status(500).json({ success: false, message: "Mint tokens failed" });
   }
 };
@@ -128,12 +195,12 @@ exports.handleCallback = async (req, res) => {
 
   try {
     const response = await axios.post(
-      "http://172.20.10.5:8080/api/paystack/verify-payment",
+      "http://172.20.10.2:8080/api/paystack/verify-payment",
       { reference: reference }
     );
 
     if (response.data.success) {
-      await axios.post("http://172.20.10.5:8080/api/paystack/mint-tokens", {
+      await axios.post("http://172.20.10.2:8080/api/paystack/mint-tokens", {
         userId: response.data.userId,
         amount: response.data.amount,
       });
