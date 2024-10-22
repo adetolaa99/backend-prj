@@ -91,7 +91,7 @@ exports.transferAsset = async (req, res) => {
       stellarConfig.ISSUING_ACCOUNT_SECRET
     ).publicKey();
     const senderKeys = StellarSdk.Keypair.fromSecret(user.stellarSecretKey);
-    const fucAsset = new StellarSdk.Asset("fuc", issuingPublicKey);
+    const fucAsset = new StellarSdk.Asset("FUC", issuingPublicKey);
 
     const account = await server.loadAccount(senderKeys.publicKey());
     const transaction = new StellarSdk.TransactionBuilder(account, {
@@ -116,7 +116,7 @@ exports.transferAsset = async (req, res) => {
       from: senderKeys.publicKey(),
       to: receiverPublicKey,
       assetAmount: parseFloat(amount),
-      assetCode: "fuc",
+      assetCode: "FUC",
       userId: userId,
     });
 
@@ -190,7 +190,7 @@ exports.createAsset = async (req, res) => {
   const distributionKeys = StellarSdk.Keypair.fromSecret(
     stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
   );
-  const fuc = new StellarSdk.Asset(assetCode, issuingKeys.publicKey());
+  const fucAsset = new StellarSdk.Asset(assetCode, issuingKeys.publicKey());
 
   try {
     console.log("Loading distribution account");
@@ -198,6 +198,7 @@ exports.createAsset = async (req, res) => {
       distributionKeys.publicKey()
     );
 
+    // Checking if trustline for the asset already exists in the distribution account
     const trustlineExists = distributionAccount.balances.some(
       (balance) =>
         balance.asset_code === assetCode &&
@@ -205,8 +206,8 @@ exports.createAsset = async (req, res) => {
     );
 
     if (!trustlineExists) {
-      console.log("Creating changeTrust transaction");
-      const transaction = new StellarSdk.TransactionBuilder(
+      console.log("Creating trustline for the distribution account");
+      const trustlineTransaction = new StellarSdk.TransactionBuilder(
         distributionAccount,
         {
           fee: StellarSdk.BASE_FEE,
@@ -215,15 +216,16 @@ exports.createAsset = async (req, res) => {
       )
         .addOperation(
           StellarSdk.Operation.changeTrust({
-            asset: fuc,
+            asset: fucAsset,
           })
         )
         .setTimeout(100)
         .build();
 
-      transaction.sign(distributionKeys);
-      console.log("Submitting changeTrust transaction");
-      await server.submitTransaction(transaction);
+      trustlineTransaction.sign(distributionKeys);
+      console.log("Submitting trustline transaction");
+      await server.submitTransaction(trustlineTransaction);
+      console.log("Trustline created successfully");
     } else {
       console.log("Trustline already exists");
     }
@@ -231,7 +233,7 @@ exports.createAsset = async (req, res) => {
     console.log("Loading issuing account");
     const issuingAccount = await server.loadAccount(issuingKeys.publicKey());
 
-    console.log("Creating payment transaction");
+    console.log("Creating payment transaction to issue new tokens");
     const paymentTransaction = new StellarSdk.TransactionBuilder(
       issuingAccount,
       {
@@ -241,8 +243,8 @@ exports.createAsset = async (req, res) => {
     )
       .addOperation(
         StellarSdk.Operation.payment({
-          destination: distributionKeys.publicKey(),
-          asset: fuc,
+          destination: distributionKeys.publicKey(), 
+          asset: fucAsset,
           amount: amount.toString(),
         })
       )
@@ -253,7 +255,7 @@ exports.createAsset = async (req, res) => {
     console.log("Submitting payment transaction");
     await server.submitTransaction(paymentTransaction);
 
-    res.send("You've successfully created more tokens!");
+    res.send("You've successfully created and issued new tokens!");
   } catch (error) {
     if (error.response && error.response.data) {
       console.error("Error response:", error.response.data);

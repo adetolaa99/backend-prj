@@ -15,7 +15,7 @@ exports.createPaymentIntent = async (req, res) => {
   const { amount } = req.body;
 
   try {
-    // Fetch the user's profile from the database
+    // Fetching the user's profile from the database
     const user = await UserModel.findByPk(userId, {
       attributes: { exclude: ["password"] },
     });
@@ -97,27 +97,29 @@ exports.mintTokens = async (req, res) => {
     const distributionKeys = StellarSdk.Keypair.fromSecret(
       stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
     );
-    const fucAsset = new StellarSdk.Asset("fuc", issuingPublicKey);
+    const fucAsset = new StellarSdk.Asset("FUC", issuingPublicKey);
+
+    // Ensuring Distribution Account Trustline
+    console.log("Loading distribution account");
     const distributionAccount = await server.loadAccount(
       distributionKeys.publicKey()
     );
-    console.log(`Distribution account loaded: ${distributionKeys.publicKey()}`);
 
-    // Load user account to check trustline
-    const userAccount = await server.loadAccount(user.stellarPublicKey);
-    const hasTrustline = userAccount.balances.some(
+    const distributionTrustlineExists = distributionAccount.balances.some(
       (balance) =>
-        balance.asset_code === "fuc" &&
+        balance.asset_code === "FUC" &&
         balance.asset_issuer === issuingPublicKey
     );
 
-    if (!hasTrustline) {
-      console.log(`Creating trustline for user: ${user.stellarPublicKey}`);
-
-      const transaction = new StellarSdk.TransactionBuilder(userAccount, {
-        fee: StellarSdk.BASE_FEE,
-        networkPassphrase: StellarSdk.Networks.TESTNET,
-      })
+    if (!distributionTrustlineExists) {
+      console.log("Creating trustline for the distribution account");
+      const trustlineTransaction = new StellarSdk.TransactionBuilder(
+        distributionAccount,
+        {
+          fee: StellarSdk.BASE_FEE,
+          networkPassphrase: StellarSdk.Networks.TESTNET,
+        }
+      )
         .addOperation(
           StellarSdk.Operation.changeTrust({
             asset: fucAsset,
@@ -126,12 +128,49 @@ exports.mintTokens = async (req, res) => {
         .setTimeout(100)
         .build();
 
-      transaction.sign(StellarSdk.Keypair.fromSecret(user.stellarSecretKey));
-      await server.submitTransaction(transaction);
+      trustlineTransaction.sign(distributionKeys);
+      console.log("Submitting distribution trustline transaction");
+      await server.submitTransaction(trustlineTransaction);
+      console.log("Trustline created for the distribution account");
+    } else {
+      console.log("Distribution account trustline already exists");
+    }
+
+    // Loading user account to check trustline
+    console.log("Loading user account");
+    const userAccount = await server.loadAccount(user.stellarPublicKey);
+    const userHasTrustline = userAccount.balances.some(
+      (balance) =>
+        balance.asset_code === "FUC" &&
+        balance.asset_issuer === issuingPublicKey
+    );
+
+    if (!userHasTrustline) {
+      console.log(`Creating trustline for user: ${user.stellarPublicKey}`);
+
+      const trustlineTransaction = new StellarSdk.TransactionBuilder(
+        userAccount,
+        {
+          fee: StellarSdk.BASE_FEE,
+          networkPassphrase: StellarSdk.Networks.TESTNET,
+        }
+      )
+        .addOperation(
+          StellarSdk.Operation.changeTrust({
+            asset: fucAsset,
+          })
+        )
+        .setTimeout(100)
+        .build();
+
+      trustlineTransaction.sign(
+        StellarSdk.Keypair.fromSecret(user.stellarSecretKey)
+      );
+      await server.submitTransaction(trustlineTransaction);
       console.log(`Trustline created for user: ${user.stellarPublicKey}`);
     }
 
-    // Load distribution account again to ensure it's up-to-date
+    // Loading distribution account again to ensure it's up-to-date
     const updatedDistributionAccount = await server.loadAccount(
       distributionKeys.publicKey()
     );
@@ -169,7 +208,6 @@ exports.mintTokens = async (req, res) => {
       console.error("Response status:", error.response.status);
       console.error("Response headers:", error.response.headers);
 
-      // Extract more detailed error information
       const extras = error.response.data.extras;
       if (extras) {
         const resultCodes = extras.result_codes;

@@ -21,7 +21,11 @@ StellarRouter.post(
   authenticateToken,
   stellarController.transferAsset
 );
-StellarRouter.get("/transactions/:userId", authenticateToken, stellarController.fetchTransactions);
+StellarRouter.get(
+  "/transactions/:userId",
+  authenticateToken,
+  stellarController.fetchTransactions
+);
 
 //needed?
 StellarRouter.get(
@@ -46,6 +50,5 @@ StellarRouter.get(
   authenticateToken,
   stellarController.checkAdminBalance
 );
-
 
 module.exports = StellarRouter;

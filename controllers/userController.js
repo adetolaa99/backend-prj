@@ -56,7 +56,7 @@ exports.signUp = async (req, res) => {
     const issuingPublicKey = StellarSdk.Keypair.fromSecret(
       stellarConfig.ISSUING_ACCOUNT_SECRET
     ).publicKey();
-    const assetCode = "fuc";
+    const assetCode = "FUC";
     const fucAsset = new StellarSdk.Asset(assetCode, issuingPublicKey);
     const newAccount = await server.loadAccount(publicKey);
     const trustlineTransaction = new StellarSdk.TransactionBuilder(newAccount, {
@@ -90,6 +90,7 @@ exports.signUp = async (req, res) => {
       .status(201)
       .json({ message: "You signed up successfully! :)", userId: user.id });
   } catch (error) {
+     console.error("Signup error:", error); 
     res.status(400).json({ error: error.message });
   }
 };
