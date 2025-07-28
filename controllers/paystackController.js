@@ -233,12 +233,12 @@ exports.handleCallback = async (req, res) => {
 
   try {
     const response = await axios.post(
-      "http://172.20.10.2:8080/api/paystack/verify-payment",
+      "http://localhost:8080/api/paystack/verify-payment",
       { reference: reference }
     );
 
     if (response.data.success) {
-      await axios.post("http://172.20.10.2:8080/api/paystack/mint-tokens", {
+      await axios.post("http://localhost:8080/api/paystack/mint-tokens", {
         userId: response.data.userId,
         amount: response.data.amount,
       });

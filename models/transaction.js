@@ -3,9 +3,9 @@ const TransactionModel = (sequelize, DataTypes) => {
     "Transaction",
     {
       transactionId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
-        autoIncrement: true,
       },
       stellarTransactionId: {
         type: DataTypes.STRING,
@@ -28,7 +28,7 @@ const TransactionModel = (sequelize, DataTypes) => {
         allowNull: false,
       },
       userId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false,
       },
     },

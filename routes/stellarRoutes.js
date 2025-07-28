@@ -1,6 +1,5 @@
 const express = require("express");
 const stellarController = require("../controllers/stellarController.js");
-const auth = require("../middleware/auth.js");
 const authenticateToken = require("../middleware/auth.js");
 
 const StellarRouter = express.Router();
