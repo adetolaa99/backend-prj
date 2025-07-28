@@ -8,7 +8,7 @@ const sendEmail = require("../utils/sendEmail.js");
 const userService = require("../services/userService.js");
 const { server, StellarSdk } = require("../stellar/stellarConnect.js");
 const stellarConfig = require("../config/stellarConfig.js");
-const fetch = import("node-fetch");
+const fetch = require("node-fetch");
 
 exports.signUp = async (req, res) => {
   const { username, email, password, firstName, lastName } = req.body;

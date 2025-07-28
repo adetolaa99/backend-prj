@@ -1,3 +1,3 @@
 # FUO Mobile Wallet
 
-This is the backend server to my University's blockchain-based financial system for my Final year project. It's still in progress :)
+This is the backend server to a Blockchain-based Financial System using Fountain University as a case study. It is my Final year project.

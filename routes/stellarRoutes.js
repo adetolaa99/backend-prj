@@ -34,7 +34,7 @@ StellarRouter.get(
   stellarController.fetchWalletDetails
 );
 StellarRouter.get(
-  "/transactions/:publicKey",
+  "/wallet-transactions/:publicKey",
   authenticateToken,
   stellarController.fetchWalletTransactions
 );

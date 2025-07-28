@@ -12,20 +12,17 @@ const sequelize = new Sequelize(
   dbConfig.DB_PASSWORD,
   {
     host: dbConfig.DB_HOST,
+    port: dbConfig.DB_PORT,
     dialect: dbConfig.DB_DIALECT,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false, //for render
+      },
+    },
+    logging: false,
   }
 );
-
-sequelize
-  .authenticate()
-  .then(() => {
-    console.log(
-      "Connection to the database has been established successfully."
-    );
-  })
-  .catch((err) => {
-    console.log("Unable to connect to the database:", err);
-  });
 
 const db = {};
 
@@ -38,19 +35,5 @@ db.transactions = TransactionModel(sequelize, DataTypes);
 db.admins = AdminModel(sequelize, DataTypes);
 
 defineAssociations(db);
-
-// sync all models
-// force: false will not drop the table if it already exists
-db.sequelize
-  .sync({ force: false })
-  .then(() => {
-    console.log("Database and tables synced successfully!");
-  })
-  .catch((err) => {
-    console.log(
-      err,
-      "Error occured while attempting to sync database and tables"
-    );
-  });
 
 module.exports = db;

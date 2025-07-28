@@ -6,12 +6,21 @@ const authenticateToken = require("../middleware/auth.js");
 const PaystackRouter = express.Router();
 
 PaystackRouter.post(
-  "/create-payment-intent", authenticateToken,
+  "/create-payment-intent",
+  authenticateToken,
   paystackController.createPaymentIntent
 );
-PaystackRouter.post("/verify-payment", authenticateToken, paystackController.verifyPayment);
-PaystackRouter.post("/mint-tokens", authenticateToken, paystackController.mintTokens);
-PaystackRouter.get("/callback", authenticateToken, paystackController.handleCallback)
+PaystackRouter.post(
+  "/verify-payment",
+  authenticateToken,
+  paystackController.verifyPayment
+);
+PaystackRouter.post(
+  "/mint-tokens",
+  authenticateToken,
+  paystackController.mintTokens
+);
+PaystackRouter.get("/callback", paystackController.handleCallback);
 
 //needed?
 PaystackRouter.post(
@@ -19,7 +28,7 @@ PaystackRouter.post(
   paystackController.createWithdrawIntent
 );
 PaystackRouter.post(
-  "/create-withdraw-intent",
+  "/process-withdrawal",
   paystackController.processWithdrawal
 );
 

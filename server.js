@@ -20,7 +20,7 @@ app.use("/api/stellar", StellarRouter);
 app.use("/api/paystack", PaystackRouter);
 
 app.get("/api", (req, res) => {
-  res.send("Heyyy from my FY project's backend server -_-");
+  res.send("Hello from the backend server -_-");
 });
 
 app.get("/", (req, res) => {
@@ -36,6 +36,20 @@ app.use((err, req, res, next) => {
 });
 
 const port = process.env.PORT || 9000;
-app.listen(port, () => {
-  console.log(`The backend server is running on port ${port}`);
-});
+const db = require("./models");
+
+db.sequelize
+  .authenticate()
+  .then(() => {
+    console.log("DB connection successful. Syncing and starting server...");
+    return db.sequelize.sync();
+  })
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`The server is running on port ${port}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to connect to DB or sync models:", err.message);
+    process.exit(1);
+  });
