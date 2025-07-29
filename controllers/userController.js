@@ -166,7 +166,7 @@ exports.sendResetPasswordMail = async (req, res) => {
   try {
     const { user, token } = await userService.generateResetToken(email);
 
-    const resetURL = `http://localhost:8080/api/users/reset-password?token=${token}`;
+    const resetURL = `${process.env.BASE_URL}/api/users/reset-password?token=${token}`;
     const message = `You're receiving this e-mail because there was recently a request to change the password on your user account at FUO Wallet app. If you requested this password change, please click the link below to set a new password within 1 hour.\n\nIf the button above isn’t working, paste the link below into your browser:\n\n${resetURL}\n\nIf you did not request to change your password, you can safely ignore this email. Thank you.`;
     const htmlMessage = `
       <div style="font-family: Arial, sans-serif; margin: 20px;">

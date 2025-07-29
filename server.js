@@ -12,7 +12,15 @@ const app = express();
 
 app.use(bodyParser.json());
 //app.use(bodyParser.urlencoded({ extended: false })); //to parse body object
-app.use(cors());
+
+const corsOptions = {
+  origin:
+    process.env.NODE_ENV === "production"
+      ? ["web-app-url"]
+      : "*",
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 app.use("/api/users", UserRouter);
 app.use("/api/admin", AdminRouter);
