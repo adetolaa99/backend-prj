@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Already Processed</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        margin: 0;
+        padding: 40px;
+        background: #f8f9fa;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .container {
+        max-width: 400px;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+      .icon {
+        font-size: 48px;
+        margin-bottom: 20px;
+      }
+      h2 {
+        color: #ffc107;
+        margin: 0 0 16px 0;
+      }
+      p {
+        color: #666;
+        margin: 0;
+        line-height: 1.5;
+      }
+      .closing-text {
+        font-size: 14px;
+        color: #999;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">⚠️</div>
+      <h2>Payment Already Processed</h2>
+      <p>This payment has already been processed!</p>
+      <p class="closing-text">This window will close automatically...</p>
+    </div>
+    <script>
+      setTimeout(() => {
+        window.close();
+      }, 3000);
+    </script>
+  </body>
+</html>

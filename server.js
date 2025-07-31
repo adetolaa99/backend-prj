@@ -14,11 +14,10 @@ app.use(bodyParser.json());
 //app.use(bodyParser.urlencoded({ extended: false })); //to parse body object
 
 const corsOptions = {
-  origin:
-    process.env.NODE_ENV === "production"
-      ? ["web-app-url"]
-      : "*",
+  origin: process.env.NODE_ENV === "production" ? ["web-app-url"] : "*",
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
 

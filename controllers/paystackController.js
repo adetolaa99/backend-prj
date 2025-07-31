@@ -8,6 +8,12 @@ const fetch = import("node-fetch");
 const db = require("../models");
 const UserModel = db.users;
 
+const fs = require("fs").promises;
+const path = require("path");
+
+// Track processed references to prevent duplicates
+const processedReferences = new Set();
+
 exports.createPaymentIntent = async (req, res) => {
   const userId = req.user.userId;
   console.log(`Fetching profile details for userId: ${userId}`);
@@ -31,6 +37,17 @@ exports.createPaymentIntent = async (req, res) => {
       {
         amount: amount * 100,
         email: userEmail,
+        callback_url: `${process.env.BASE_URL}/api/paystack/callback`,
+        metadata: {
+          userId: userId,
+          custom_fields: [
+            {
+              display_name: "User ID",
+              variable_name: "user_id",
+              value: userId,
+            },
+          ],
+        },
       },
       {
         headers: {
@@ -49,6 +66,14 @@ exports.createPaymentIntent = async (req, res) => {
 exports.verifyPayment = async (req, res) => {
   const { reference } = req.body;
 
+  // Check if reference has already been processed
+  if (processedReferences.has(reference)) {
+    return res.json({
+      success: false,
+      message: "Payment reference has already been processed",
+    });
+  }
+
   try {
     const response = await axios.get(
       `https://api.paystack.co/transaction/verify/${reference}`,
@@ -59,8 +84,13 @@ exports.verifyPayment = async (req, res) => {
         },
       }
     );
+
     console.log("Paystack response:", response.data);
+
     if (response.data.status && response.data.data.status === "success") {
+      // Add reference to processed set
+      processedReferences.add(reference);
+
       res.json({
         success: true,
         amount: response.data.data.amount / 100,
@@ -229,26 +259,123 @@ exports.mintTokens = async (req, res) => {
 };
 
 exports.handleCallback = async (req, res) => {
-  const reference = req.query.reference;
+  const { reference, trxref } = req.query;
+  const paymentReference = reference || trxref;
+
+  // Check if reference has already been processed
+  if (processedReferences.has(paymentReference)) {
+    const alreadyProcessedHtml = await renderTemplate(
+      "payment-already-processed"
+    );
+    return res.send(alreadyProcessedHtml);
+  }
 
   try {
-    const response = await axios.post(
-      `${process.env.BASE_URL}/api/paystack/verify-payment`,
-      { reference: reference }
+    console.log("Callback received for reference:", paymentReference);
+
+    // Verify payment
+    const verifyResponse = await axios.get(
+      `https://api.paystack.co/transaction/verify/${paymentReference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${paystackConfig.PAYSTACK_SECRET_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
 
-    if (response.data.success) {
-      await axios.post(`${process.env.BASE_URL}/api/paystack/mint-tokens`, {
-        userId: response.data.userId,
-        amount: response.data.amount,
-      });
-      res.send("Payment verification and token minting successful");
+    if (
+      verifyResponse.data.status &&
+      verifyResponse.data.data.status === "success"
+    ) {
+      const paymentData = verifyResponse.data.data;
+      const userId =
+        paymentData.metadata.userId ||
+        paymentData.metadata.custom_fields?.find(
+          (f) => f.variable_name === "user_id"
+        )?.value;
+      const amount = paymentData.amount / 100;
+
+      if (userId) {
+        // Mark reference as processed
+        processedReferences.add(paymentReference);
+
+        // Call mintTokens
+        try {
+          const mockReq = { body: { userId: userId, amount: amount } };
+          const mockRes = {
+            json: (data) => console.log("Mint result:", data),
+            status: (code) => ({
+              json: (data) => console.log("Mint error:", code, data),
+            }),
+          };
+
+          await exports.mintTokens(mockReq, mockRes);
+
+          console.log("Tokens minted successfully for user:", userId);
+
+          // Success response
+          const successHtml = await renderTemplate("payment-success", {
+            amount,
+          });
+          res.send(successHtml);
+        } catch (mintError) {
+          console.error("Token minting failed:", mintError);
+          const mintErrorHtml = await renderTemplate("payment-error", {
+            title: "Token Minting Failed",
+            message:
+              "Payment was successful but token minting failed. Please contact support.",
+          });
+          res.status(500).send(mintErrorHtml);
+        }
+      } else {
+        console.error("No userId found in payment metadata");
+        const userErrorHtml = await renderTemplate("payment-error", {
+          title: "User Data Missing",
+          message: "User ID not found in payment data. Please contact support.",
+        });
+        res.status(400).send(userErrorHtml);
+      }
     } else {
-      res.status(400).send("Payment verification failed");
+      console.log("Payment verification failed");
+      const verificationErrorHtml = await renderTemplate("payment-error", {
+        title: "Payment Verification Failed",
+        message:
+          "We could not verify your payment. Please contact support if you believe this is an error.",
+      });
+      res.status(400).send(verificationErrorHtml);
     }
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Error verifying payment");
+    console.error("Callback error:", error);
+    const generalErrorHtml = await renderTemplate("payment-error", {
+      title: "Payment Processing Error",
+      message:
+        "An error occurred while processing your payment. Please contact support.",
+    });
+    res.status(500).send(generalErrorHtml);
+  }
+};
+
+const renderTemplate = async (templateName, data = {}) => {
+  try {
+    const templatePath = path.join(
+      __dirname,
+      "..",
+      "views",
+      `${templateName}.html`
+    );
+    let html = await fs.readFile(templatePath, "utf8");
+
+    // Template replacement
+    Object.keys(data).forEach((key) => {
+      const regex = new RegExp(`{{${key}}}`, "g");
+      html = html.replace(regex, data[key]);
+    });
+
+    return html;
+  } catch (error) {
+    console.error("Template rendering error:", error);
+    return "<html><body><h2>Error loading page</h2></body></html>";
   }
 };
 

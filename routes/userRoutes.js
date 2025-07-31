@@ -10,8 +10,6 @@ UserRouter.post("/login", userController.login);
 
 UserRouter.get("/profile", authenticateToken, userController.fetchProfile);
 
-UserRouter.get("/reset-password", userController.viewResetPasswordPage);
-
 UserRouter.post(
   "/send-reset-password-email",
   userController.sendResetPasswordMail
