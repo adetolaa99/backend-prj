@@ -14,7 +14,10 @@ app.use(bodyParser.json());
 //app.use(bodyParser.urlencoded({ extended: false })); //to parse body object
 
 const corsOptions = {
-  origin: process.env.NODE_ENV === "production" ? ["web-app-url"] : "*",
+  origin:
+    process.env.NODE_ENV === "production"
+      ? ["https://fuo-wallet-web.vercel.app"]
+      : "*",
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
