@@ -1,6 +1,6 @@
-# FUO Mobile Wallet - Backend
+# FUO Wallet - Backend
 
-This application is a blockchain-based financial system built as my final-year project using my University, Fountain University, Osogbo (FUO) as a case study. The system allows one to fund a wallet, hold a custom Stellar-based token (FUC) and make transactions all without touching traditional banking apps.
+This application is the backend engine to a Blockchain-Based Financial System built as my final-year project using my University, Fountain University, Osogbo (FUO) as a case study. The system allows one to fund a wallet, hold a custom Stellar-based token (FUC) and make transactions all without touching traditional banking apps.
 
 The backend handles authentication, Stellar wallet provisioning, Paystack payment processing, token minting and transaction history. The web and mobile frontends are in separate repositories (links below).
 
@@ -13,7 +13,7 @@ The backend handles authentication, Stellar wallet provisioning, Paystack paymen
 
 ## Table of Contents
 
-- [FUO Mobile Wallet - Backend](#fuo-mobile-wallet---backend)
+- [FUO Wallet - Backend](#fuo-wallet---backend)
   - [Table of Contents](#table-of-contents)
   - [How It Works](#how-it-works)
   - [Tech Stack](#tech-stack)
