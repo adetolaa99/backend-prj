@@ -6,8 +6,8 @@ The backend handles authentication, Stellar wallet provisioning, Paystack paymen
 
 **Related repositories:**
 
-- Web frontend (React): [fuo-wallet-web](https://github.com/adetolaa99/fuo-wallet-web)
-- Mobile frontend (React Native): [fuo-wallet-mobile](https://github.com/adetolaa99/mobile-prj)
+- Web App (React): [fuo-wallet-web](https://github.com/adetolaa99/fuo-wallet-web)
+- Mobile App (React Native): [fuo-wallet-mobile](https://github.com/adetolaa99/mobile-prj)
 
 ---
 
