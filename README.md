@@ -106,7 +106,7 @@ Transaction recorded in Database
 ## Project Structure
 
 ```
-fuo-wallet-backend/
+backend-prj/
 ├── config/
 │   ├── dbConfig.js          # PostgreSQL connection config
 │   ├── emailConfig.js       # Nodemailer credentials
@@ -159,8 +159,8 @@ fuo-wallet-backend/
 ### Installation
 
 ```bash
-git clone https://github.com/adetolaa99/fuo-wallet-backend.git
-cd fuo-wallet-backend
+git clone https://github.com/adetolaa99/backend-prj.git
+cd backend-prj
 npm install
 ```
 
