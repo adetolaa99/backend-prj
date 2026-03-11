@@ -8,21 +8,31 @@ const StellarRouter = require("./routes/stellarRoutes.js");
 const PaystackRouter = require("./routes/paystackRoute.js");
 require("dotenv").config();
 
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swaggerConfig.js");
+
 const app = express();
 
 app.use(bodyParser.json());
-//app.use(bodyParser.urlencoded({ extended: false })); //to parse body object
+//app.use(bodyParser.urlencoded({ extended: false }));
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : [];
 
 const corsOptions = {
-  origin:
-    process.env.NODE_ENV === "production"
-      ? ["https://fuo-wallet-web.vercel.app"]
-      : "*",
+  origin: process.env.NODE_ENV === "production" ? allowedOrigins : "*",
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api/docs.json", (req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 
 app.use("/api/users", UserRouter);
 app.use("/api/admin", AdminRouter);
@@ -37,7 +47,6 @@ app.get("/", (req, res) => {
   res.send("You're on the homepage :)");
 });
 
-//error handler
 app.use((err, req, res, next) => {
   console.log(err);
   res.status(500).json({

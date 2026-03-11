@@ -11,17 +11,14 @@ const UserModel = db.users;
 const fs = require("fs").promises;
 const path = require("path");
 
-// Track processed references to prevent duplicates
 const processedReferences = new Set();
 
 exports.createPaymentIntent = async (req, res) => {
   const userId = req.user.userId;
-  console.log(`Fetching profile details for userId: ${userId}`);
 
   const { amount } = req.body;
 
   try {
-    // Fetching the user's profile from the database
     const user = await UserModel.findByPk(userId, {
       attributes: { exclude: ["password"] },
     });
@@ -54,7 +51,7 @@ exports.createPaymentIntent = async (req, res) => {
           Authorization: `Bearer ${paystackConfig.PAYSTACK_SECRET_KEY}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     res.json(response.data);
   } catch (error) {
@@ -66,7 +63,6 @@ exports.createPaymentIntent = async (req, res) => {
 exports.verifyPayment = async (req, res) => {
   const { reference } = req.body;
 
-  // Check if reference has already been processed
   if (processedReferences.has(reference)) {
     return res.json({
       success: false,
@@ -82,13 +78,12 @@ exports.verifyPayment = async (req, res) => {
           Authorization: `Bearer ${paystackConfig.PAYSTACK_SECRET_KEY}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     console.log("Paystack response:", response.data);
 
     if (response.data.status && response.data.data.status === "success") {
-      // Add reference to processed set
       processedReferences.add(reference);
 
       res.json({
@@ -122,23 +117,22 @@ exports.mintTokens = async (req, res) => {
     }
 
     const issuingPublicKey = StellarSdk.Keypair.fromSecret(
-      stellarConfig.ISSUING_ACCOUNT_SECRET
+      stellarConfig.ISSUING_ACCOUNT_SECRET,
     ).publicKey();
     const distributionKeys = StellarSdk.Keypair.fromSecret(
-      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
+      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET,
     );
     const fucAsset = new StellarSdk.Asset("FUC", issuingPublicKey);
 
-    // Ensuring Distribution Account Trustline
     console.log("Loading distribution account");
     const distributionAccount = await server.loadAccount(
-      distributionKeys.publicKey()
+      distributionKeys.publicKey(),
     );
 
     const distributionTrustlineExists = distributionAccount.balances.some(
       (balance) =>
         balance.asset_code === "FUC" &&
-        balance.asset_issuer === issuingPublicKey
+        balance.asset_issuer === issuingPublicKey,
     );
 
     if (!distributionTrustlineExists) {
@@ -148,12 +142,12 @@ exports.mintTokens = async (req, res) => {
         {
           fee: StellarSdk.BASE_FEE,
           networkPassphrase: StellarSdk.Networks.TESTNET,
-        }
+        },
       )
         .addOperation(
           StellarSdk.Operation.changeTrust({
             asset: fucAsset,
-          })
+          }),
         )
         .setTimeout(100)
         .build();
@@ -166,13 +160,12 @@ exports.mintTokens = async (req, res) => {
       console.log("Distribution account trustline already exists");
     }
 
-    // Loading user account to check trustline
     console.log("Loading user account");
     const userAccount = await server.loadAccount(user.stellarPublicKey);
     const userHasTrustline = userAccount.balances.some(
       (balance) =>
         balance.asset_code === "FUC" &&
-        balance.asset_issuer === issuingPublicKey
+        balance.asset_issuer === issuingPublicKey,
     );
 
     if (!userHasTrustline) {
@@ -183,26 +176,25 @@ exports.mintTokens = async (req, res) => {
         {
           fee: StellarSdk.BASE_FEE,
           networkPassphrase: StellarSdk.Networks.TESTNET,
-        }
+        },
       )
         .addOperation(
           StellarSdk.Operation.changeTrust({
             asset: fucAsset,
-          })
+          }),
         )
         .setTimeout(100)
         .build();
 
       trustlineTransaction.sign(
-        StellarSdk.Keypair.fromSecret(user.stellarSecretKey)
+        StellarSdk.Keypair.fromSecret(user.stellarSecretKey),
       );
       await server.submitTransaction(trustlineTransaction);
       console.log(`Trustline created for user: ${user.stellarPublicKey}`);
     }
 
-    // Loading distribution account again to ensure it's up-to-date
     const updatedDistributionAccount = await server.loadAccount(
-      distributionKeys.publicKey()
+      distributionKeys.publicKey(),
     );
 
     const paymentTransaction = new StellarSdk.TransactionBuilder(
@@ -210,14 +202,14 @@ exports.mintTokens = async (req, res) => {
       {
         fee: StellarSdk.BASE_FEE,
         networkPassphrase: StellarSdk.Networks.TESTNET,
-      }
+      },
     )
       .addOperation(
         StellarSdk.Operation.payment({
           destination: user.stellarPublicKey,
           asset: fucAsset,
           amount: amount.toString(),
-        })
+        }),
       )
       .setTimeout(100)
       .build();
@@ -227,7 +219,7 @@ exports.mintTokens = async (req, res) => {
     console.log("Payment transaction signed");
 
     const result = await server.submitTransaction(paymentTransaction);
-    console.log("Payment transaction submitted", result);
+    console.log("Payment transaction submitted");
 
     res.json({ success: true, message: "Tokens minted successfully" });
   } catch (error) {
@@ -262,10 +254,9 @@ exports.handleCallback = async (req, res) => {
   const { reference, trxref } = req.query;
   const paymentReference = reference || trxref;
 
-  // Check if reference has already been processed
   if (processedReferences.has(paymentReference)) {
     const alreadyProcessedHtml = await renderTemplate(
-      "payment-already-processed"
+      "payment-already-processed",
     );
     return res.send(alreadyProcessedHtml);
   }
@@ -273,7 +264,6 @@ exports.handleCallback = async (req, res) => {
   try {
     console.log("Callback received for reference:", paymentReference);
 
-    // Verify payment
     const verifyResponse = await axios.get(
       `https://api.paystack.co/transaction/verify/${paymentReference}`,
       {
@@ -281,7 +271,7 @@ exports.handleCallback = async (req, res) => {
           Authorization: `Bearer ${paystackConfig.PAYSTACK_SECRET_KEY}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (
@@ -292,15 +282,13 @@ exports.handleCallback = async (req, res) => {
       const userId =
         paymentData.metadata.userId ||
         paymentData.metadata.custom_fields?.find(
-          (f) => f.variable_name === "user_id"
+          (f) => f.variable_name === "user_id",
         )?.value;
       const amount = paymentData.amount / 100;
 
       if (userId) {
-        // Mark reference as processed
         processedReferences.add(paymentReference);
 
-        // Call mintTokens
         try {
           const mockReq = { body: { userId: userId, amount: amount } };
           const mockRes = {
@@ -314,7 +302,6 @@ exports.handleCallback = async (req, res) => {
 
           console.log("Tokens minted successfully for user:", userId);
 
-          // Success response
           const successHtml = await renderTemplate("payment-success", {
             amount,
           });
@@ -362,11 +349,10 @@ const renderTemplate = async (templateName, data = {}) => {
       __dirname,
       "..",
       "views",
-      `${templateName}.html`
+      `${templateName}.html`,
     );
     let html = await fs.readFile(templatePath, "utf8");
 
-    // Template replacement
     Object.keys(data).forEach((key) => {
       const regex = new RegExp(`{{${key}}}`, "g");
       html = html.replace(regex, data[key]);
@@ -436,7 +422,7 @@ exports.processWithdrawal = async (req, res) => {
           Authorization: `Bearer ${withdrawSecretKey}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     if (response.data.status === "success") {

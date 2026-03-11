@@ -24,10 +24,10 @@ exports.receiveAsset = async (req, res) => {
   const { publicKey } = req.body;
   try {
     const distributorKeys = StellarSdk.Keypair.fromSecret(
-      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
+      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET,
     );
     const issuingPublicKey = StellarSdk.Keypair.fromSecret(
-      stellarConfig.ISSUING_ACCOUNT_SECRET
+      stellarConfig.ISSUING_ACCOUNT_SECRET,
     ).publicKey();
 
     const assetCode = "FUC";
@@ -35,7 +35,7 @@ exports.receiveAsset = async (req, res) => {
 
     await server.loadAccount(publicKey);
     const distributorAccount = await server.loadAccount(
-      distributorKeys.publicKey()
+      distributorKeys.publicKey(),
     );
     const transaction = new StellarSdk.TransactionBuilder(distributorAccount, {
       fee: StellarSdk.BASE_FEE,
@@ -45,8 +45,8 @@ exports.receiveAsset = async (req, res) => {
         StellarSdk.Operation.payment({
           destination: publicKey,
           asset: fucAsset,
-          amount: "20000", // Amount of FUC to send
-        })
+          amount: "20000",
+        }),
       )
       .addMemo(StellarSdk.Memo.text("FUC token"))
       .setTimeout(180)
@@ -68,8 +68,8 @@ exports.receiveAsset = async (req, res) => {
         .status(400)
         .send(
           `Transaction failed with error: ${JSON.stringify(
-            error.response.data.extras.result_codes
-          )}`
+            error.response.data.extras.result_codes,
+          )}`,
         );
     } else {
       res.status(400).send("Something went wrong: " + error.message);
@@ -81,14 +81,13 @@ exports.transferAsset = async (req, res) => {
   const { receiverPublicKey, amount } = req.body;
   try {
     const userId = req.user.userId;
-    console.log("User ID from token:", userId);
     const user = await UserModel.findOne({ where: { id: userId } });
     if (!user) {
       return res.status(404).send({ error: "User not found" });
     }
 
     const issuingPublicKey = StellarSdk.Keypair.fromSecret(
-      stellarConfig.ISSUING_ACCOUNT_SECRET
+      stellarConfig.ISSUING_ACCOUNT_SECRET,
     ).publicKey();
     const senderKeys = StellarSdk.Keypair.fromSecret(user.stellarSecretKey);
     const fucAsset = new StellarSdk.Asset("FUC", issuingPublicKey);
@@ -103,7 +102,7 @@ exports.transferAsset = async (req, res) => {
           destination: receiverPublicKey,
           asset: fucAsset,
           amount: amount.toString(),
-        })
+        }),
       )
       .setTimeout(100)
       .build();
@@ -133,8 +132,8 @@ exports.transferAsset = async (req, res) => {
         .status(400)
         .send(
           `Transaction failed with error: ${JSON.stringify(
-            error.response.data.extras.result_codes
-          )}`
+            error.response.data.extras.result_codes,
+          )}`,
         );
     } else {
       res.status(500).send("Something went wrong: " + error.message);
@@ -175,7 +174,7 @@ exports.fetchWalletTransactions = async (req, res) => {
       .transactions()
       .forAccount(publicKey)
       .call();
-    res.json(transactions); //res.json(transactions);
+    res.json(transactions);
   } catch (error) {
     res.status(400).send(error.message);
   }
@@ -185,24 +184,23 @@ exports.fetchWalletTransactions = async (req, res) => {
 exports.createAsset = async (req, res) => {
   const { assetCode, amount } = req.body;
   const issuingKeys = StellarSdk.Keypair.fromSecret(
-    stellarConfig.ISSUING_ACCOUNT_SECRET
+    stellarConfig.ISSUING_ACCOUNT_SECRET,
   );
   const distributionKeys = StellarSdk.Keypair.fromSecret(
-    stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
+    stellarConfig.DISTRIBUTION_ACCOUNT_SECRET,
   );
   const fucAsset = new StellarSdk.Asset(assetCode, issuingKeys.publicKey());
 
   try {
     console.log("Loading distribution account");
     const distributionAccount = await server.loadAccount(
-      distributionKeys.publicKey()
+      distributionKeys.publicKey(),
     );
 
-    // Checking if trustline for the asset already exists in the distribution account
     const trustlineExists = distributionAccount.balances.some(
       (balance) =>
         balance.asset_code === assetCode &&
-        balance.asset_issuer === issuingKeys.publicKey()
+        balance.asset_issuer === issuingKeys.publicKey(),
     );
 
     if (!trustlineExists) {
@@ -212,12 +210,12 @@ exports.createAsset = async (req, res) => {
         {
           fee: StellarSdk.BASE_FEE,
           networkPassphrase: StellarSdk.Networks.TESTNET,
-        }
+        },
       )
         .addOperation(
           StellarSdk.Operation.changeTrust({
             asset: fucAsset,
-          })
+          }),
         )
         .setTimeout(100)
         .build();
@@ -239,14 +237,14 @@ exports.createAsset = async (req, res) => {
       {
         fee: StellarSdk.BASE_FEE,
         networkPassphrase: StellarSdk.Networks.TESTNET,
-      }
+      },
     )
       .addOperation(
         StellarSdk.Operation.payment({
-          destination: distributionKeys.publicKey(), 
+          destination: distributionKeys.publicKey(),
           asset: fucAsset,
           amount: amount.toString(),
-        })
+        }),
       )
       .setTimeout(100)
       .build();
@@ -256,6 +254,7 @@ exports.createAsset = async (req, res) => {
     await server.submitTransaction(paymentTransaction);
 
     res.send("You've successfully created and issued new tokens!");
+    console.log("Tokens successfully issued");
   } catch (error) {
     if (error.response && error.response.data) {
       console.error("Error response:", error.response.data);

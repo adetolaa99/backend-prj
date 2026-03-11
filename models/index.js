@@ -29,7 +29,6 @@ const db = {};
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-//add all models
 db.users = UserModel(sequelize, DataTypes);
 db.transactions = TransactionModel(sequelize, DataTypes);
 db.admins = AdminModel(sequelize, DataTypes);

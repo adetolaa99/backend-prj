@@ -1,27 +1,16 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const emailConfig = require("../config/emailConfig.js");
 
-const sendEmail = async (options) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: emailConfig.EMAIL,
-      pass: emailConfig.EMAIL_PASSWORD,
-    },
-    tls: {
-      ciphers: "SSLv3",
-    },
-  });
+const resend = new Resend(emailConfig.RESEND_API_KEY);
 
-  const mailOptions = {
-    from: '"FUO Wallet" <noreply@FUOwallet.com>',
+const sendEmail = async (options) => {
+  await resend.emails.send({
+    from: "FUO Wallet <noreply@hello.nafeesah.online>",
     to: options.email,
     subject: options.subject,
     text: options.message,
     html: options.html,
-  };
-
-  await transporter.sendMail(mailOptions);
+  });
 };
 
 module.exports = sendEmail;

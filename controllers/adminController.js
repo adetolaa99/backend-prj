@@ -121,7 +121,7 @@ exports.createAdminAccount = async (req, res) => {
   }
 };
 
-//? needed
+// needed?
 exports.viewUserWalletDetails = async (req, res) => {
   const { userId } = req.params;
   try {

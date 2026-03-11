@@ -22,17 +22,15 @@ exports.signUp = async (req, res) => {
       return res.status(400).json({ error: "You've already signed up!" });
     }
 
-    // Generate Stellar key pair for new account
     const pair = StellarSdk.Keypair.random();
     const publicKey = pair.publicKey();
     const secretKey = pair.secret();
 
-    // Funding the new account with XLM to activate it
     const distributorKeys = StellarSdk.Keypair.fromSecret(
-      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET
+      stellarConfig.DISTRIBUTION_ACCOUNT_SECRET,
     );
     const distributorAccount = await server.loadAccount(
-      distributorKeys.publicKey()
+      distributorKeys.publicKey(),
     );
     const fee = await server.fetchBaseFee();
 
@@ -44,7 +42,7 @@ exports.signUp = async (req, res) => {
         StellarSdk.Operation.createAccount({
           destination: publicKey,
           startingBalance: "20",
-        })
+        }),
       )
       .setTimeout(100)
       .build();
@@ -52,9 +50,8 @@ exports.signUp = async (req, res) => {
     transaction.sign(distributorKeys);
     await server.submitTransaction(transaction);
 
-    // Setting up a trustline for the custom asset
     const issuingPublicKey = StellarSdk.Keypair.fromSecret(
-      stellarConfig.ISSUING_ACCOUNT_SECRET
+      stellarConfig.ISSUING_ACCOUNT_SECRET,
     ).publicKey();
     const assetCode = "FUC";
     const fucAsset = new StellarSdk.Asset(assetCode, issuingPublicKey);
@@ -66,7 +63,7 @@ exports.signUp = async (req, res) => {
       .addOperation(
         StellarSdk.Operation.changeTrust({
           asset: fucAsset,
-        })
+        }),
       )
       .setTimeout(180)
       .build();
@@ -137,12 +134,10 @@ exports.login = async (req, res) => {
 
 exports.fetchProfile = async (req, res) => {
   const userId = req.user.userId;
-  console.log(`Fetching profile for userId: ${userId}`);
   try {
     const user = await UserModel.findByPk(userId, {
       attributes: { exclude: ["password"] },
     });
-    console.log(`User found: ${user}`);
     if (!user) {
       return res.status(404).json({ message: "User details not found" });
     }

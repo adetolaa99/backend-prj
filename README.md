@@ -23,6 +23,7 @@ The backend handles authentication, Stellar wallet provisioning, Paystack paymen
     - [Installation](#installation)
     - [Environment Variables](#environment-variables)
     - [Running the Server](#running-the-server)
+  - [API Documentation](#api-documentation)
   - [API Reference](#api-reference)
     - [User Routes](#user-routes)
       - [POST /signup](#post-signup)
@@ -98,7 +99,7 @@ Transaction recorded in Database
 | Blockchain       | Stellar (Horizon API, testnet) |
 | Payments         | Paystack                       |
 | Auth             | JWT (jsonwebtoken)             |
-| Email            | Nodemailer (Gmail)             |
+| Email            | Resend                         |
 | Password Hashing | bcryptjs                       |
 
 ---
@@ -109,7 +110,7 @@ Transaction recorded in Database
 backend-prj/
 ├── config/
 │   ├── dbConfig.js          # PostgreSQL connection config
-│   ├── emailConfig.js       # Nodemailer credentials
+│   ├── emailConfig.js       # Resend credentials
 │   ├── paystackConfig.js    # Paystack API keys
 │   ├── stellarConfig.js     # Stellar network + issuing/distribution keys
 │   └── tokenConfig.js       # JWT secret
@@ -174,6 +175,7 @@ PORT=9000
 NODE_ENV=development
 BASE_URL=http://localhost:9000
 FRONTEND_URL=http://localhost:3000
+ALLOWED_ORIGINS=https://your-frontend-url
 
 # Database (PostgreSQL)
 DB_NAME=your_database_name
@@ -186,9 +188,8 @@ DB_DIALECT=postgres
 # JWT
 JWT_SECRET=your_jwt_secret_key
 
-# Email (Gmail)
-EMAIL=your_gmail_address
-EMAIL_PASSWORD=your_gmail_app_password
+# Email (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxx
 
 # Paystack
 PAYSTACK_SECRET_KEY=sk_test_xxxxxxxxxxxx
@@ -200,7 +201,7 @@ ISSUING_ACCOUNT_SECRET=your_issuing_account_secret
 DISTRIBUTION_ACCOUNT_SECRET=your_distribution_account_secret
 ```
 
-> For `EMAIL_PASSWORD`, use a Gmail App Password, not your regular password. You can generate one in your Google account settings under "Security > 2-Step Verification > App passwords."
+> To get your `RESEND_API_KEY`, log in to your [Resend dashboard](https://resend.com), go to **API Keys** and create a new key. Make sure your sending domain is verified before use.
 
 > For `STELLAR_NETWORK`, use `https://horizon-testnet.stellar.org` for development and `https://horizon.stellar.org` for production.
 
@@ -219,6 +220,19 @@ npm start
 ```
 
 The server starts on `http://localhost:9000` by default. On startup, it authenticates with the database and syncs all Sequelize models before accepting requests.
+
+---
+
+## API Documentation
+
+Interactive API documentation is available via Swagger UI once the server is running:
+
+- **Local:** [http://localhost:9000/api/docs](http://localhost:9000/api/docs)
+- **Production:** `{BASE_URL}/api/docs`
+
+The raw OpenAPI spec (useful for importing into Postman or other tools) is available at `/api/docs.json`.
+
+All protected endpoints require a `Bearer` token. Use the **Authorize** button in the Swagger UI to set your JWT before making requests.
 
 ---
 

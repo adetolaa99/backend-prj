@@ -1,8 +1,7 @@
 require("dotenv").config();
 
 const emailConfig = {
-  EMAIL: process.env.EMAIL,
-  EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
 };
 
 module.exports = emailConfig;
