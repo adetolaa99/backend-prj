@@ -7,7 +7,7 @@ const options = {
       title: "FUO Wallet API",
       version: "1.0.0",
       description:
-        "API documentation for FUO Wallet. A blockchain-based wallet system built on the Stellar network.",
+        "API documentation for FUO Wallet. A blockchain-based financial system built on the Stellar network.",
     },
     servers: [
       {
