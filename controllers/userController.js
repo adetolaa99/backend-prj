@@ -143,6 +143,7 @@ exports.fetchProfile = async (req, res) => {
     }
 
     res.status(200).json({
+      id: user.id,
       username: user.username,
       email: user.email,
       firstName: user.firstName,
