@@ -20,21 +20,21 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
   : [];
 
-  const corsOptions = {
+const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin
     if (!origin) return callback(null, true);
-    
+
     // In development, allow all origins
     if (process.env.NODE_ENV !== "production") {
       return callback(null, true);
     }
-    
+
     // In production, check against allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
@@ -80,7 +80,7 @@ db.sequelize
     return db.sequelize.sync();
   })
   .then(() => {
-    app.listen(port, () => {
+    app.listen(port, "0.0.0.0", () => {
       console.log(`The server is running on port ${port}`);
     });
   })
