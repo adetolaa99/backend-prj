@@ -4,6 +4,7 @@ const fetch = import("node-fetch");
 const db = require("../models");
 const TransactionModel = db.transactions;
 const UserModel = db.users;
+const { sendPushNotification } = require("../utils/messagepipe.js");
 
 exports.checkBalance = async (req, res) => {
   try {
@@ -118,6 +119,18 @@ exports.transferAsset = async (req, res) => {
       assetCode: "FUC",
       userId: userId,
     });
+
+    UserModel.findOne({ where: { stellarPublicKey: receiverPublicKey } })
+      .then((receiver) => {
+        if (receiver) {
+          sendPushNotification(
+            receiver.id,
+            "FUC Tokens Received!",
+            `You received ${amount} FUC tokens`,
+          );
+        }
+      })
+      .catch(() => {});
 
     res.send({ message: "Transaction successful!", result });
   } catch (error) {

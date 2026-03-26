@@ -11,6 +11,8 @@ const UserModel = db.users;
 const fs = require("fs").promises;
 const path = require("path");
 
+const { sendPushNotification } = require("../utils/messagepipe.js");
+
 const processedReferences = new Set();
 
 exports.createPaymentIntent = async (req, res) => {
@@ -220,6 +222,12 @@ exports.mintTokens = async (req, res) => {
 
     const result = await server.submitTransaction(paymentTransaction);
     console.log("Payment transaction submitted");
+
+    sendPushNotification(
+      userId,
+      "Wallet Funded",
+      `${amount} FUC tokens have been added to your wallet`,
+    );
 
     res.json({ success: true, message: "Tokens minted successfully" });
   } catch (error) {
