@@ -149,6 +149,37 @@ UserRouter.get("/profile", authenticateToken, userController.fetchProfile);
 
 /**
  * @swagger
+ * /api/users/register-device:
+ *   post:
+ *     summary: Register device for push notifications
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [deviceToken, platform]
+ *             properties:
+ *               deviceToken:
+ *                 type: string
+ *               platform:
+ *                 type: string
+ *                 enum: [android, ios]
+ *     responses:
+ *       200:
+ *         description: Device registered successfully
+ */
+UserRouter.post(
+  "/register-device",
+  authenticateToken,
+  userController.registerDevice,
+);
+
+/**
+ * @swagger
  * /api/users/send-reset-password-email:
  *   post:
  *     summary: Request a password reset email

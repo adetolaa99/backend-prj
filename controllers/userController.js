@@ -9,6 +9,10 @@ const userService = require("../services/userService.js");
 const { server, StellarSdk } = require("../stellar/stellarConnect.js");
 const stellarConfig = require("../config/stellarConfig.js");
 const fetch = require("node-fetch");
+const {
+  sendPushNotification,
+  registerDevice,
+} = require("../utils/messagepipe.js");
 
 exports.signUp = async (req, res) => {
   const { username, email, password, firstName, lastName } = req.body;
@@ -153,6 +157,33 @@ exports.fetchProfile = async (req, res) => {
       stellarSecretKey: user.stellarSecretKey,
     });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.registerDevice = async (req, res) => {
+  const userId = req.user.userId;
+  const { deviceToken, platform } = req.body;
+
+  console.log(
+    `Device registration attempt - userId: ${userId}, platform: ${platform}`,
+  );
+
+  if (!deviceToken || !platform) {
+    return res
+      .status(400)
+      .json({ error: "deviceToken and platform are required" });
+  }
+
+  try {
+    await registerDevice(userId, deviceToken, platform);
+    console.log(`Device registered successfully - userId: ${userId}`);
+    res.status(200).json({ message: "Device registered successfully" });
+  } catch (error) {
+    console.error(
+      `Device registration failed - userId: ${userId}:`,
+      error.message,
+    );
     res.status(500).json({ error: error.message });
   }
 };
