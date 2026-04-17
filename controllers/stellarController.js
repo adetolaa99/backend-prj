@@ -125,8 +125,8 @@ exports.transferAsset = async (req, res) => {
         if (receiver) {
           sendPushNotification(
             receiver.id,
-            "FUC Tokens Received!",
-            `You received ${amount} FUC tokens`,
+            process.env.MESSAGEPIPE_PUSH_TEMPLATE_TRANSFER,
+            { amount: amount.toString() },
           );
         }
       })

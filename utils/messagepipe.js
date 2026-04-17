@@ -16,7 +16,7 @@ const registerDevice = async (userId, deviceToken, platform) => {
   );
 };
 
-const sendPushNotification = async (userId, title, body) => {
+const sendPushNotification = async (userId, templateId, variables) => {
   if (!MESSAGEPIPE_URL || !MESSAGEPIPE_API_KEY) {
     console.warn("MessagePipe not configured, skipping push notification");
     return;
@@ -25,7 +25,7 @@ const sendPushNotification = async (userId, title, body) => {
   try {
     await axios.post(
       `${MESSAGEPIPE_URL}/push/send`,
-      { userId, title, body },
+      { userId, templateId, variables },
       {
         headers: {
           "x-api-key": MESSAGEPIPE_API_KEY,

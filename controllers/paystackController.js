@@ -223,11 +223,9 @@ exports.mintTokens = async (req, res) => {
     const result = await server.submitTransaction(paymentTransaction);
     console.log("Payment transaction submitted");
 
-    sendPushNotification(
-      userId,
-      "Wallet Funded",
-      `${amount} FUC tokens have been added to your wallet`,
-    );
+    sendPushNotification(userId, process.env.MESSAGEPIPE_PUSH_TEMPLATE_FUNDED, {
+      amount: amount.toString(),
+    });
 
     res.json({ success: true, message: "Tokens minted successfully" });
   } catch (error) {
