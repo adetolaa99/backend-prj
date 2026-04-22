@@ -120,17 +120,27 @@ exports.transferAsset = async (req, res) => {
       userId: userId,
     });
 
-    UserModel.findOne({ where: { stellarPublicKey: receiverPublicKey } })
-      .then((receiver) => {
-        if (receiver) {
-          sendPushNotification(
-            receiver.id,
-            process.env.MESSAGEPIPE_PUSH_TEMPLATE_TRANSFER,
-            { amount: amount.toString() },
-          );
-        }
-      })
-      .catch(() => {});
+    const receiver = await UserModel.findOne({
+      where: { stellarPublicKey: receiverPublicKey },
+    });
+    if (receiver) {
+      await TransactionModel.create({
+        stellarTransactionId: result.id + "_recv",
+        from: senderKeys.publicKey(),
+        to: receiverPublicKey,
+        assetAmount: parseFloat(amount),
+        assetCode: "FUC",
+        userId: receiver.id,
+      });
+    }
+
+    if (receiver) {
+      sendPushNotification(
+        receiver.id,
+        process.env.MESSAGEPIPE_PUSH_TEMPLATE_TRANSFER,
+        { amount: amount.toString() },
+      );
+    }
 
     res.send({ message: "Transaction successful!", result });
   } catch (error) {
