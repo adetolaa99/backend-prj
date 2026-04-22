@@ -223,6 +223,15 @@ exports.mintTokens = async (req, res) => {
     const result = await server.submitTransaction(paymentTransaction);
     console.log("Payment transaction submitted");
 
+    await db.transactions.create({
+      stellarTransactionId: result.id,
+      from: "PAYSTACK_FUNDING",
+      to: user.stellarPublicKey,
+      assetAmount: parseFloat(amount),
+      assetCode: "FUC",
+      userId: userId,
+    });
+
     sendPushNotification(userId, process.env.MESSAGEPIPE_PUSH_TEMPLATE_FUNDED, {
       amount: amount.toString(),
     });
