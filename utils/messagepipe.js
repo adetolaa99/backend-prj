@@ -22,8 +22,15 @@ const sendPushNotification = async (userId, templateId, variables) => {
     return;
   }
 
+  console.log(
+    "OneSignal/MessagePipe: attempting to send notification to userId:",
+    userId,
+  );
+  console.log("OneSignal/MessagePipe: templateId:", templateId);
+  console.log("OneSignal/MessagePipe: variables:", variables);
+
   try {
-    await axios.post(
+    const response = await axios.post(
       `${MESSAGEPIPE_URL}/push/send`,
       { userId, templateId, variables },
       {
@@ -33,8 +40,16 @@ const sendPushNotification = async (userId, templateId, variables) => {
         },
       },
     );
+    console.log(
+      "OneSignal/MessagePipe: notification sent successfully:",
+      response.data,
+    );
   } catch (error) {
     console.error("Failed to send push notification:", error?.message);
+    console.error(
+      "Failed to send push notification response:",
+      error?.response?.data,
+    );
   }
 };
 
