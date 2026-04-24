@@ -40,10 +40,7 @@ const sendPushNotification = async (userId, templateId, variables) => {
         },
       },
     );
-    console.log(
-      "OneSignal/MessagePipe: notification sent successfully:",
-      response.data,
-    );
+    console.log("MessagePipe response:", response.data);
   } catch (error) {
     console.error("Failed to send push notification:", error?.message);
     console.error(

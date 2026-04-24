@@ -83,7 +83,12 @@ exports.verifyPayment = async (req, res) => {
       },
     );
 
-    console.log("Paystack response:", response.data);
+    console.log(
+      "Paystack verification:",
+      response.data.data.status,
+      "| reference:",
+      reference,
+    );
 
     if (response.data.status && response.data.data.status === "success") {
       processedReferences.add(reference);
