@@ -21,7 +21,7 @@ const AdminRouter = express.Router();
  *             properties:
  *               email:
  *                 type: string
- *                 example: admin@fuowallet.com
+ *                 example: testadmin@example.com
  *               password:
  *                 type: string
  *                 example: adminpassword
@@ -179,7 +179,7 @@ AdminRouter.get(
  *             properties:
  *               email:
  *                 type: string
- *                 example: newadmin@fuowallet.com
+ *                 example: newadmin@example.com
  *               password:
  *                 type: string
  *                 example: adminpassword
