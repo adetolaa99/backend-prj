@@ -4,9 +4,11 @@ const MESSAGEPIPE_URL = process.env.MESSAGEPIPE_URL;
 const MESSAGEPIPE_API_KEY = process.env.MESSAGEPIPE_API_KEY;
 
 const registerDevice = async (userId, deviceToken, platform) => {
+  const provider = platform === "ios" ? "apns" : "fcm";
+
   await axios.post(
     `${MESSAGEPIPE_URL}/push/register-device`,
-    { userId, deviceToken, provider: "fcm", platform },
+    { userId, deviceToken, provider, platform },
     {
       headers: {
         "x-api-key": MESSAGEPIPE_API_KEY,
